@@ -1,0 +1,13 @@
+# Arquivos gerados pelo macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Arquivos gerados pelo Windows
+Thumbs.db
+desktop.ini
+
+# Configurações de editores
+.vscode/
+.idea/
+*.swp

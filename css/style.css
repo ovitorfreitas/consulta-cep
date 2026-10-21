@@ -1,0 +1,621 @@
+/* ==========================================================================
+   CONSULTA DE CEP — FOLHA DE ESTILOS (CSS)
+   ==========================================================================
+
+   Este arquivo cuida de TODA a aparência da aplicação: cores, espaçamentos,
+   tamanhos de fonte, arredondamentos, sombras, animações e responsividade.
+
+   ORGANIZAÇÃO DO ARQUIVO (leia na ordem, de cima para baixo):
+
+     1. Variáveis de tema        -> a "paleta" central do projeto
+     2. Reset e estilos globais  -> ajustes básicos do navegador
+     3. Layout da página         -> como o conteúdo é posicionado na tela
+     4. Cabeçalho                -> título e subtítulo
+     5. Card de busca            -> o formulário
+     6. Campo de entrada         -> o input do CEP e seus estados
+     7. Mensagem de erro         -> o aviso em vermelho
+     8. Botão                    -> todos os estados do botão + spinner
+     9. Card de resultado        -> a exibição do endereço encontrado
+    10. Responsividade           -> ajustes para telas pequenas
+
+   Obs.: o CSS é "cascata" — regras escritas depois podem sobrescrever as
+   anteriores. Por isso a ordem das seções importa.
+   ========================================================================== */
+
+
+/* ==========================================================================
+   1. VARIÁVEIS DE TEMA (Custom Properties)
+   ==========================================================================
+
+   O seletor :root representa o elemento <html>, ou seja, o topo do documento.
+   Variáveis declaradas aqui ficam disponíveis para TODO o arquivo.
+
+   Por que usar variáveis?
+   Imagine que o azul do projeto apareça em 12 lugares diferentes. Sem
+   variáveis, trocar a cor exigiria 12 edições (e o risco de esquecer uma).
+   Com variáveis, basta mudar UMA linha aqui e a mudança se propaga.
+
+   Para usar uma variável, escrevemos: color: var(--cor-primaria);
+   ========================================================================== */
+
+:root {
+  /* ----- Cores de fundo e superfícies ----- */
+  --cor-fundo-inicio: #eef2f9;   /* topo do degradê de fundo */
+  --cor-fundo-fim: #e4e9f3;      /* base do degradê de fundo */
+  --cor-superficie: #ffffff;     /* fundo dos cards (branco) */
+
+  /* ----- Cores de texto ----- */
+  --cor-texto: #1a1d29;          /* texto principal, quase preto */
+  --cor-texto-suave: #6b7280;    /* textos secundários, em cinza */
+
+  /* ----- Bordas ----- */
+  --cor-borda: #e2e5ec;
+
+  /* ----- Cor de destaque (identidade visual do app) ----- */
+  --cor-primaria: #3457d5;           /* azul do botão */
+  --cor-primaria-hover: #2c47b3;     /* azul mais escuro ao passar o mouse */
+  --cor-primaria-contraste: #ffffff; /* cor do texto sobre o azul */
+
+  /* ----- Cores de erro ----- */
+  --cor-erro-fundo: #fdecec;
+  --cor-erro-texto: #b3261e;
+  --cor-erro-borda: #f5c2c0;
+
+  /* ----- Arredondamento de cantos -----
+     Padronizar os raios mantém o visual coerente em todo o app. */
+  --raio-medio: 10px;  /* campos, botões, mensagens */
+  --raio-grande: 16px; /* cards */
+
+  /* ----- Sombras -----
+     Sombras suaves criam a sensação de profundidade (elevação). */
+  --sombra-leve: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --sombra-media: 0 8px 24px rgba(16, 24, 40, 0.08);
+
+  /* ----- Tipografia -----
+     Esta é uma "pilha de fontes do sistema": o navegador usa a primeira fonte
+     disponível no aparelho. Resultado: o texto parece nativo em cada sistema
+     (macOS, Windows, Android) e não precisamos baixar nenhuma fonte externa,
+     o que deixa a página mais rápida. */
+  --fonte-padrao: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+
+/* ==========================================================================
+   2. RESET E ESTILOS GLOBAIS
+   ==========================================================================
+   Cada navegador aplica estilos padrão próprios. Aqui normalizamos o que
+   interessa para começarmos de uma base previsível.
+   ========================================================================== */
+
+/*
+  O seletor * aplica a regra a TODOS os elementos.
+
+  box-sizing: border-box é um dos ajustes mais úteis do CSS. Ele muda a forma
+  como a largura é calculada:
+
+    content-box (padrão): largura = conteúdo         (padding e borda SOMAM)
+    border-box  (este)  : largura = conteúdo + padding + borda
+
+  Exemplo prático: um campo com width: 100% e padding: 16px.
+    - Sem border-box, ele ficaria 32px MAIS LARGO que o pai e estouraria o layout.
+    - Com border-box, ele respeita exatamente os 100%.
+*/
+* {
+  box-sizing: border-box;
+}
+
+/* Remove as margens padrão que o navegador coloca no documento. */
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--fonte-padrao);
+  color: var(--cor-texto);
+
+  /*
+    linear-gradient cria um degradê. O "180deg" indica o sentido de cima para
+    baixo. Os percentuais (0% e 100%) dizem onde cada cor começa e termina.
+  */
+  background: linear-gradient(180deg, var(--cor-fundo-inicio) 0%, var(--cor-fundo-fim) 100%);
+
+  /* Garante que o degradê cubra a altura toda da janela, mesmo com pouco conteúdo. */
+  min-height: 100vh; /* vh = viewport height; 100vh = 100% da altura da janela */
+
+  /* Deixa a renderização do texto mais suave em telas Apple. */
+  -webkit-font-smoothing: antialiased;
+
+  /* Trava de segurança contra rolagem horizontal — um requisito do projeto. */
+  overflow-x: hidden;
+}
+
+
+/* ==========================================================================
+   3. LAYOUT DA PÁGINA
+   ==========================================================================
+   Aqui usamos FLEXBOX para centralizar o conteúdo horizontalmente.
+
+   Flexbox em 3 conceitos:
+     display: flex      -> ativa o modo flexível no elemento PAI
+     justify-content    -> alinha os filhos no eixo PRINCIPAL (horizontal)
+     align-items        -> alinha os filhos no eixo CRUZADO (vertical)
+   ========================================================================== */
+
+.pagina {
+  display: flex;
+  justify-content: center;   /* centraliza horizontalmente */
+  align-items: flex-start;   /* alinha ao topo (não centraliza na vertical) */
+  min-height: 100vh;
+  padding: 64px 20px;        /* 64px acima/abaixo, 20px nas laterais */
+}
+
+.conteudo {
+  width: 100%;
+  max-width: 480px; /* no desktop o conteúdo para de crescer aqui */
+
+  /*
+    Transformamos o container também em flex, mas em COLUNA. Assim os blocos
+    (cabeçalho, formulário, resultado) ficam empilhados verticalmente.
+
+    A propriedade "gap" cria o espaço ENTRE os filhos. É mais previsível que
+    usar margin em cada elemento, porque não gera espaço sobrando nas pontas
+    nem o clássico problema de "margens que colapsam".
+  */
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+
+/* ==========================================================================
+   4. CABEÇALHO
+   ========================================================================== */
+
+.cabecalho {
+  text-align: center;
+  padding: 0 8px;
+}
+
+.titulo {
+  /*
+    Navegadores dão uma margem grande ao <h1>. Zeramos e definimos apenas a
+    margem inferior, mantendo o controle do espaçamento.
+  */
+  margin: 0 0 8px;
+
+  /*
+    rem é uma unidade RELATIVA ao tamanho de fonte raiz (normalmente 16px).
+    Então 2rem = 32px. Usar rem em vez de px respeita a configuração de
+    tamanho de fonte do usuário, o que é melhor para acessibilidade.
+  */
+  font-size: 2rem;
+  font-weight: 700; /* negrito */
+
+  /* Aproxima levemente as letras — truque comum em títulos grandes. */
+  letter-spacing: -0.02em;
+}
+
+.subtitulo {
+  margin: 0;
+  font-size: 0.95rem;
+
+  /* O cinza cria HIERARQUIA VISUAL: o olho vai primeiro ao título. */
+  color: var(--cor-texto-suave);
+}
+
+
+/* ==========================================================================
+   5. CARD DE BUSCA (o formulário)
+   ==========================================================================
+   O "card" é um padrão de interface: um retângulo branco, arredondado e com
+   sombra, que agrupa elementos relacionados e os separa do fundo.
+   ========================================================================== */
+
+.card-busca {
+  background: var(--cor-superficie);
+  border-radius: var(--raio-grande);
+  box-shadow: var(--sombra-media);
+  padding: 28px;
+
+  /* Empilha rótulo, campo, erro e botão com respiro uniforme entre eles. */
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Agrupa o rótulo "CEP" e o campo de entrada. */
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.campo-rotulo {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+
+/* ==========================================================================
+   6. CAMPO DE ENTRADA E SEUS ESTADOS
+   ==========================================================================
+   Um bom campo de formulário comunica visualmente o que está acontecendo.
+   Trabalhamos quatro estados: normal, hover, foco e inválido.
+   ========================================================================== */
+
+/* ----- 6.1 Estado normal ----- */
+.campo-entrada {
+  /*
+    Campos de formulário NÃO herdam a fonte do body automaticamente.
+    Sem esta linha, o input usaria a fonte padrão do navegador e ficaria
+    visualmente diferente do resto da página.
+  */
+  font-family: inherit;
+
+  font-size: 1.05rem;
+  padding: 14px 16px; /* área de toque confortável, importante no celular */
+  width: 100%;
+
+  border: 1.5px solid var(--cor-borda);
+  border-radius: var(--raio-medio);
+  background: #fafbfc;
+  color: var(--cor-texto);
+
+  /* Remove o contorno padrão do navegador — nós desenhamos o nosso em :focus. */
+  outline: none;
+
+  /* Espaça levemente os números, facilitando a leitura do CEP. */
+  letter-spacing: 0.02em;
+
+  /*
+    transition faz as mudanças de estilo acontecerem gradualmente em vez de
+    "pularem". A sintaxe é: propriedade  duração  curva-de-aceleração.
+    Duração entre 0.15s e 0.25s costuma parecer natural.
+  */
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+/* Deixa o texto do placeholder mais apagado que o texto digitado. */
+.campo-entrada::placeholder {
+  color: #a4a9b5;
+  letter-spacing: normal;
+}
+
+/* ----- 6.2 Estado hover: o mouse está sobre o campo ----- */
+.campo-entrada:hover {
+  border-color: #c7cbd6; /* borda um pouco mais escura, sinal de "clicável" */
+}
+
+/*
+  ----- 6.3 Estado de foco: o campo está selecionado -----
+
+  NUNCA remova o indicador de foco sem colocar outro no lugar. Quem navega
+  pelo teclado (tecla Tab) depende dele para saber onde está na página.
+
+  Aqui substituímos o outline padrão por um "anel" azul feito com box-shadow,
+  que respeita o arredondamento das bordas e fica mais bonito.
+*/
+.campo-entrada:focus {
+  border-color: var(--cor-primaria);
+  background: var(--cor-superficie);
+  box-shadow: 0 0 0 4px rgba(52, 87, 213, 0.12);
+}
+
+/*
+  ----- 6.4 Estado inválido -----
+  Esta classe é adicionada e removida pelo JavaScript (função mostrarErro /
+  limparErro) quando o CEP digitado não passa na validação.
+*/
+.campo-entrada.invalido {
+  border-color: var(--cor-erro-borda);
+}
+
+
+/* ==========================================================================
+   7. MENSAGEM DE ERRO
+   ========================================================================== */
+
+.mensagem-erro {
+  margin: 0;
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  font-weight: 500;
+
+  color: var(--cor-erro-texto);
+  background: var(--cor-erro-fundo);
+  border: 1px solid var(--cor-erro-borda);
+  border-radius: var(--raio-medio);
+}
+
+/*
+  O atributo hidden do HTML normalmente já esconde o elemento, MAS a regra
+  "display: flex" do card pai pode sobrescrever esse comportamento padrão.
+  Esta regra garante que o elemento oculto realmente desapareça.
+
+  A sintaxe [hidden] é um SELETOR DE ATRIBUTO: aplica o estilo somente quando
+  o elemento possui aquele atributo.
+*/
+.mensagem-erro[hidden] {
+  display: none;
+}
+
+
+/* ==========================================================================
+   8. BOTÃO
+   ==========================================================================
+   O enunciado pede cinco estados: normal, hover, foco, desabilitado e
+   carregando. Vamos construir um por um.
+   ========================================================================== */
+
+/* ----- 8.1 Estado normal ----- */
+.botao {
+  /* position: relative permite posicionar elementos internos, se necessário. */
+  position: relative;
+
+  font-family: inherit; /* botões também não herdam a fonte automaticamente */
+  font-size: 1rem;
+  font-weight: 600;
+
+  color: var(--cor-primaria-contraste);
+  background: var(--cor-primaria);
+  border: none;
+  border-radius: var(--raio-medio);
+  padding: 14px 20px;
+  box-shadow: var(--sombra-leve);
+
+  /* Mãozinha do mouse: reforça que o elemento é clicável. */
+  cursor: pointer;
+
+  /* Flex para centralizar o texto e o spinner lado a lado. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  transition: background-color 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
+}
+
+/*
+  ----- 8.2 Estado hover -----
+
+  :not(:disabled) é importante: significa "ao passar o mouse, MAS apenas se o
+  botão não estiver desabilitado". Sem isso, o botão reagiria ao mouse mesmo
+  durante o carregamento, passando a mensagem errada ao usuário.
+*/
+.botao:hover:not(:disabled) {
+  background: var(--cor-primaria-hover);
+}
+
+/*
+  ----- 8.3 Estado ativo (no momento do clique) -----
+  Deslocar 1px para baixo imita o afundar de um botão físico. É um retorno
+  tátil sutil que faz a interface parecer mais responsiva.
+*/
+.botao:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/*
+  ----- 8.4 Estado de foco -----
+
+  :focus-visible é mais inteligente que :focus — o navegador só aplica o anel
+  quando o foco veio do TECLADO. Assim quem usa Tab vê o indicador, e quem
+  clica com o mouse não vê um anel "sobrando" no botão.
+*/
+.botao:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(52, 87, 213, 0.25);
+}
+
+/*
+  ----- 8.5 Estado desabilitado -----
+  O JavaScript define botao.disabled = true durante a consulta. Reduzimos a
+  opacidade e trocamos o cursor para comunicar "não dá para clicar agora".
+*/
+.botao:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+/*
+  ----- 8.6 Estado de carregamento (spinner) -----
+
+  O spinner é feito 100% em CSS, sem imagem nem biblioteca. O truque é:
+    1. Criar um quadrado pequeno (16x16);
+    2. border-radius: 50% transforma o quadrado em círculo;
+    3. Dar uma borda semitransparente nos 4 lados;
+    4. Pintar APENAS a borda de cima de branco (border-top-color);
+    5. Girar tudo infinitamente com uma animação.
+  O resultado visual é um arco branco girando dentro de um anel apagado.
+*/
+.botao-spinner {
+  /* Começa escondido; só aparece quando a classe "carregando" é aplicada. */
+  display: none;
+
+  width: 16px;
+  height: 16px;
+
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+
+  /* nome-da-animacao  duração  curva  repetições */
+  animation: girar 0.7s linear infinite;
+}
+
+/* Quando o JavaScript adiciona a classe "carregando", o spinner aparece. */
+.botao.carregando .botao-spinner {
+  display: inline-block;
+}
+
+/*
+  @keyframes define os quadros-chave de uma animação.
+  Como só declaramos o estado final ("to"), o navegador entende que o estado
+  inicial é o atual (0 grau) e interpola toda a volta.
+*/
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* ==========================================================================
+   9. CARD DE RESULTADO
+   ========================================================================== */
+
+.card-resultado {
+  background: var(--cor-superficie);
+  border-radius: var(--raio-grande);
+  box-shadow: var(--sombra-media);
+  padding: 28px;
+
+  /* Entrada suave: o card não "aparece de supetão" ao chegar o resultado. */
+  animation: surgir 0.25s ease;
+}
+
+/* Mesma proteção aplicada à mensagem de erro (ver seção 7). */
+.card-resultado[hidden] {
+  display: none;
+}
+
+/*
+  Animação de entrada: o card surge subindo 6px enquanto a opacidade vai de
+  0 a 1. Movimentos curtos e rápidos passam sensação de fluidez; exagerar aqui
+  deixaria a interface lenta.
+*/
+@keyframes surgir {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.resultado-titulo {
+  margin: 0 0 20px;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+/*
+  ----- 9.1 A grade de dados -----
+
+  Aqui usamos CSS GRID, que é ideal para layouts em duas dimensões como esta
+  tabela de rótulo + valor.
+
+  Cada linha é uma .resultado-linha contendo um <dt> (rótulo) e um <dd>
+  (valor), lado a lado em duas colunas.
+*/
+.resultado-lista {
+  margin: 0; /* o <dl> tem margem padrão do navegador */
+  display: grid;
+  row-gap: 14px;
+}
+
+/*
+  grid-template-columns define as colunas:
+
+    minmax(96px, auto) -> 1ª coluna (rótulo): no mínimo 96px, mas pode crescer
+                          conforme o texto. Garante alinhamento entre as linhas.
+    1fr                -> 2ª coluna (valor): "fr" significa "fração do espaço
+                          sobrando", então ela ocupa todo o resto disponível.
+*/
+.resultado-linha {
+  display: grid;
+  grid-template-columns: minmax(96px, auto) 1fr;
+  column-gap: 16px;
+
+  /* Linha divisória fina separando um dado do outro. */
+  border-top: 1px solid var(--cor-borda);
+  padding-top: 14px;
+}
+
+/*
+  :first-child seleciona o primeiro elemento do grupo. A primeira linha não
+  precisa de borda em cima — ela já está logo abaixo do título.
+*/
+.resultado-linha:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+/* <dt> = o rótulo (ex.: "LOGRADOURO") */
+.resultado-lista dt {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+
+  /* Maiúsculas + letras espaçadas deixam o rótulo com cara de "etiqueta". */
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  /* Mantém o rótulo alinhado ao topo quando o valor ocupa várias linhas. */
+  align-self: start;
+  padding-top: 2px;
+}
+
+/* <dd> = o valor (ex.: "Praça da Sé") */
+.resultado-lista dd {
+  margin: 0; /* o <dd> vem com margem esquerda por padrão */
+  font-size: 0.98rem;
+  font-weight: 500;
+  color: var(--cor-texto);
+
+  /*
+    Quebra palavras muito longas (como um nome de rua extenso sem espaços)
+    em vez de deixá-las estourarem para fora do card.
+  */
+  word-break: break-word;
+}
+
+
+/* ==========================================================================
+   10. RESPONSIVIDADE
+   ==========================================================================
+
+   MEDIA QUERY é um bloco de CSS que só entra em vigor quando a condição é
+   verdadeira. Aqui a condição é "largura da tela de até 480px", que cobre
+   basicamente os celulares.
+
+   Estratégia aplicada no mobile:
+     - reduzir espaçamentos (a tela é pequena, cada pixel conta);
+     - diminuir o título (2rem seria grande demais);
+     - empilhar rótulo e valor em UMA coluna, pois duas colunas ficariam
+       apertadas e causariam quebras feias de texto.
+   ========================================================================== */
+
+@media (max-width: 480px) {
+  .pagina {
+    padding: 40px 16px;
+  }
+
+  .titulo {
+    font-size: 1.6rem;
+  }
+
+  .card-busca,
+  .card-resultado {
+    padding: 20px;
+    border-radius: var(--raio-medio);
+  }
+
+  /*
+    De duas colunas para uma só: o rótulo passa a ficar ACIMA do valor.
+    Reduzimos o row-gap para 4px para manter rótulo e valor visualmente
+    agrupados como um único bloco de informação.
+  */
+  .resultado-linha {
+    grid-template-columns: 1fr;
+    row-gap: 4px;
+  }
+
+  .resultado-lista dt {
+    padding-top: 0;
+  }
+}

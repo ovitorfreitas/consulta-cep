@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  CONSULTA DE CEP — ESTRUTURA DA PÁGINA (HTML)
+  ============================================================================
+
+  Este é o arquivo principal da aplicação. Ele é responsável APENAS pela
+  ESTRUTURA do conteúdo (o "esqueleto" da página).
+
+  A divisão de responsabilidades do projeto é:
+
+    index.html   -> ESTRUTURA  (quais elementos existem na tela)
+    css/style.css -> APARÊNCIA  (cores, espaçamentos, tamanhos, animações)
+    js/script.js  -> COMPORTAMENTO (máscara, validação, consulta à API)
+    sw.js         -> SERVICE WORKER (cache para a aplicação funcionar offline)
+
+  Essa separação é um dos conceitos mais importantes do desenvolvimento web:
+  cada arquivo cuida de uma única preocupação.
+
+  O atributo lang="pt-BR" informa ao navegador (e aos leitores de tela) que o
+  conteúdo da página está em português do Brasil.
+-->
+<html lang="pt-BR">
+
+<head>
+  <!--
+    ==========================================================================
+    PASSO 1 — METADADOS BÁSICOS
+    ==========================================================================
+    Nada aqui dentro do <head> aparece na tela. São informações para o
+    navegador, para o sistema operacional e para mecanismos de busca.
+  -->
+
+  <!-- Define a codificação de caracteres: garante que acentos (á, ç, ã) apareçam corretamente. -->
+  <meta charset="UTF-8" />
+
+  <!--
+    A "viewport" é essencial para a responsividade em celulares:
+      width=device-width -> a largura da página acompanha a largura real do aparelho
+      initial-scale=1.0  -> a página abre sem zoom aplicado
+    Sem esta linha, o celular simula uma tela de desktop e tudo fica minúsculo.
+  -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Texto exibido na aba/guia do navegador. -->
+  <title>Consulta de CEP</title>
+
+  <!-- Resumo da página, usado por buscadores e ao compartilhar o link. -->
+  <meta name="description" content="Consulte rapidamente informações de endereço pelo CEP." />
+
+  <!--
+    ==========================================================================
+    PASSO 2 — CONFIGURAÇÃO DE PWA (Progressive Web App)
+    ==========================================================================
+    Um PWA é um site que pode ser "instalado" como se fosse um aplicativo.
+    Para isso precisamos de três coisas:
+      1. Um manifest.json (descreve nome, ícones e cores do app)  -> abaixo
+      2. Ícones em vários tamanhos                                -> pasta icons/
+      3. Um service worker                                        -> sw.js
+  -->
+
+  <!-- Aponta para o arquivo que descreve o aplicativo instalável. -->
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Cor que o sistema usa para pintar a barra superior do navegador. -->
+  <meta name="theme-color" content="#3457d5" />
+
+  <!-- Ícone usado na aba do navegador e ao instalar o app. -->
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+
+  <!-- Configurações específicas do iPhone/iPad (Safari ignora parte do manifest.json). -->
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Consulta CEP" />
+
+  <!--
+    ==========================================================================
+    PASSO 3 — FOLHA DE ESTILOS
+    ==========================================================================
+    O CSS é carregado aqui, no <head>, para que o navegador já conheça os
+    estilos antes de desenhar a página. Isso evita o efeito desagradável de
+    ver o conteúdo "sem estilo" por alguns instantes.
+  -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+  <!--
+    ==========================================================================
+    PASSO 4 — ESTRUTURA VISÍVEL DA PÁGINA
+    ==========================================================================
+    Usamos HTML SEMÂNTICO, ou seja, tags que descrevem o SIGNIFICADO do
+    conteúdo em vez de usar <div> para tudo:
+
+      <main>    -> o conteúdo principal da página
+      <header>  -> o cabeçalho (título e subtítulo)
+      <form>    -> um formulário de entrada de dados
+      <section> -> uma seção independente de conteúdo (o resultado)
+      <label>   -> o rótulo de um campo de formulário
+      <button>  -> um botão clicável
+
+    HTML semântico melhora a acessibilidade (leitores de tela entendem a
+    página) e também a indexação por buscadores.
+  -->
+  <main class="pagina">
+
+    <!-- A "conteudo" centraliza e limita a largura máxima do conteúdo. -->
+    <div class="conteudo">
+
+      <!-- ----- 4.1 Cabeçalho: título principal e subtítulo explicativo ----- -->
+      <header class="cabecalho">
+        <h1 class="titulo">Consulta de CEP</h1>
+        <p class="subtitulo">Consulte rapidamente informações de endereço pelo CEP.</p>
+      </header>
+
+      <!--
+        ----- 4.2 Formulário de consulta -----
+
+        Por que usar <form> em vez de só um <input> e um <button>?
+        Porque o formulário nos dá DE GRAÇA o comportamento de enviar ao
+        pressionar a tecla Enter. No JavaScript escutamos o evento "submit",
+        que dispara tanto pelo clique no botão quanto pelo Enter.
+
+        O atributo novalidate desliga as mensagens de validação automáticas do
+        navegador, pois vamos fazer nossa própria validação em JavaScript
+        (assim controlamos o texto e a aparência das mensagens de erro).
+      -->
+      <form class="card-busca" id="formulario-cep" novalidate>
+
+        <div class="campo">
+          <!--
+            O atributo for="campo-cep" liga este <label> ao <input> de id
+            "campo-cep". Dois benefícios importantes:
+              1. Clicar no texto "CEP" coloca o cursor dentro do campo.
+              2. Leitores de tela anunciam "CEP" ao focar o campo.
+          -->
+          <label for="campo-cep" class="campo-rotulo">CEP</label>
+
+          <input
+            type="text"
+            id="campo-cep"
+            name="cep"
+            class="campo-entrada"
+            placeholder="Digite o CEP"
+            inputmode="numeric"
+            autocomplete="off"
+            maxlength="9"
+          />
+          <!--
+            Explicação de cada atributo do campo acima:
+
+            type="text"        -> usamos "text" e não "number" porque a máscara
+                                  insere um hífen (01001-000), que o tipo
+                                  "number" não aceitaria.
+            inputmode="numeric"-> no celular, abre o teclado numérico. Melhora
+                                  muito a experiência sem restringir o campo.
+            autocomplete="off" -> evita o navegador sugerir valores antigos.
+            maxlength="9"      -> um CEP com máscara tem 9 caracteres:
+                                  8 dígitos + 1 hífen ("01001-000").
+          -->
+        </div>
+
+        <!--
+          Parágrafo reservado para a mensagem de erro.
+
+          hidden      -> começa escondido; o JavaScript remove/adiciona isso.
+          role="alert"-> avisa leitores de tela para anunciarem a mensagem
+                         imediatamente quando ela aparecer.
+        -->
+        <p class="mensagem-erro" id="mensagem-erro" role="alert" hidden></p>
+
+        <!--
+          type="submit" faz este botão disparar o evento "submit" do formulário.
+
+          O <span> do texto é separado do <span> do spinner para que o
+          JavaScript possa trocar apenas o texto ("Consultar CEP" ->
+          "Consultando...") sem apagar o spinner.
+
+          aria-hidden="true" no spinner esconde o elemento decorativo dos
+          leitores de tela — ele é puramente visual e não tem conteúdo útil.
+        -->
+        <button type="submit" class="botao" id="botao-consultar">
+          <span class="botao-texto" id="botao-texto">Consultar CEP</span>
+          <span class="botao-spinner" aria-hidden="true"></span>
+        </button>
+      </form>
+
+      <!--
+        ----- 4.3 Card de resultado -----
+
+        Começa com hidden (invisível) e só é exibido quando uma consulta
+        retorna um endereço válido.
+
+        aria-live="polite" informa aos leitores de tela que o conteúdo deste
+        bloco muda dinamicamente. Quando o endereço for inserido aqui, o
+        leitor anuncia a novidade sem interromper o que já estava falando.
+
+        <dl> significa "description list" (lista de descrições) e é a tag
+        semanticamente correta para pares rótulo/valor:
+          <dt> = termo    (ex.: "Logradouro")
+          <dd> = descrição(ex.: "Praça da Sé")
+        O conteúdo aqui é gerado pelo JavaScript, por isso começa vazio.
+      -->
+      <section class="card-resultado" id="card-resultado" hidden aria-live="polite">
+        <h2 class="resultado-titulo">Endereço encontrado</h2>
+        <dl class="resultado-lista" id="resultado-lista"></dl>
+      </section>
+
+    </div>
+  </main>
+
+  <!--
+    ==========================================================================
+    PASSO 5 — CARREGAMENTO DO JAVASCRIPT
+    ==========================================================================
+    O <script> fica no FINAL do <body> de propósito.
+
+    O navegador lê o HTML de cima para baixo. Colocando o script aqui,
+    garantimos que todos os elementos (formulário, campo, botão...) já existem
+    quando o JavaScript tentar buscá-los com getElementById. Se o script
+    estivesse no <head>, ele rodaria antes dos elementos existirem e as buscas
+    retornariam null.
+  -->
+  <script src="js/script.js"></script>
+</body>
+
+</html>
